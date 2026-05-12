@@ -1,0 +1,14 @@
+# Shell scripts must keep LF on checkout — bash on Linux breaks on CRLF.
+*.sh text eol=lf
+deploy.sh text eol=lf
+
+# Caddy config snippets — Caddy is more tolerant, but keep LF for consistency.
+*.caddy text eol=lf
+Caddyfile text eol=lf
+
+# Web sources — text, auto-normalised.
+*.html text
+*.css  text
+*.js   text
+*.json text
+*.md   text
