@@ -1,0 +1,17 @@
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# Node (in case the project later adopts npm tooling)
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+
+# Local Claude harness data
+.claude/settings.local.json
+.claude/projects/

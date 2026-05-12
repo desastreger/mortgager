@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mortgager — A Ledger for UK Mortgage Scenarios</title>
+  <meta name="description" content="Compare UK mortgage scenarios side by side. Real lender rates, capital repayment, interest-only, offset, SDLT, overpayments." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Decorative paper grain over the whole page -->
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="masthead">
+    <div class="masthead__rule"></div>
+    <h1 class="masthead__title">
+      <span class="masthead__monogram" aria-hidden="true">£</span>
+      <span class="masthead__word">Mortgager</span>
+    </h1>
+    <div class="masthead__meta">
+      <span class="kicker">Edition №&nbsp;I</span>
+      <span class="masthead__dot" aria-hidden="true">·</span>
+      <span class="kicker" id="todayStamp">—</span>
+      <span class="masthead__dot" aria-hidden="true">·</span>
+      <span class="kicker kicker--strong">A Ledger for UK Mortgage Scenarios</span>
+    </div>
+    <div class="masthead__rule masthead__rule--thin"></div>
+  </header>
+
+  <nav class="mode-switch" aria-label="Calculator mode">
+    <button type="button" class="mode-tab is-active" data-mode="purchase"   aria-selected="true">Purchase</button>
+    <button type="button" class="mode-tab"           data-mode="remortgage" aria-selected="false">Remortgage</button>
+  </nav>
+
+  <section class="brief">
+    <p class="brief__kicker">On the use of this instrument</p>
+    <p class="brief__lede">
+      Build a <em>scenario</em> for each mortgage you are weighing.
+      Pin them side by side and let the figures speak.
+    </p>
+  </section>
+
+  <section class="master master--purchase" data-mode="purchase" aria-labelledby="masterHeading">
+    <header class="master__head">
+      <div class="master__title-group">
+        <p class="kicker kicker--accent">Master scenario · purchase</p>
+        <h2 class="master__title" id="masterHeading">Common ground</h2>
+        <p class="master__note">
+          Set the buyer's situation once. Every scenario below inherits these
+          conditions — change anything here and the whole site recalculates.
+        </p>
+      </div>
+      <div class="master__controls">
+        <span class="pill" data-scenario-count>— scenarios</span>
+        <span class="pill pill--accent" id="boeRatePill" title="Bank of England Bank Rate">BoE · —%</span>
+        <button type="button" class="btn btn--primary" id="addScenarioBtn">
+          <span aria-hidden="true">+</span> Add scenario
+        </button>
+        <button type="button" class="btn btn--ghost" id="resetBtn" title="Restore the default two scenarios">
+          Reset
+        </button>
+      </div>
+    </header>
+
+    <div class="master__body">
+
+      <div class="master__col">
+        <p class="master__col-title">№ I · Property</p>
+        <label class="field">
+          <span class="field__label">Property value</span>
+          <span class="field__input field__input--currency">
+            <span class="field__prefix">£</span>
+            <input type="number" inputmode="decimal" step="1000" min="0" data-master="propertyValue" />
+          </span>
+        </label>
+        <label class="field">
+          <span class="field__label">Deposit</span>
+          <span class="field__input field__input--currency">
+            <span class="field__prefix">£</span>
+            <input type="number" inputmode="decimal" step="1000" min="0" data-master="deposit" />
+          </span>
+        </label>
+      </div>
+
+      <div class="master__col">
+        <p class="master__col-title">№ II · Term</p>
+        <label class="field">
+          <span class="field__label">Mortgage term</span>
+          <span class="field__input field__input--suffix">
+            <input type="number" inputmode="numeric" step="1" min="1" max="40" data-master="termYears" />
+            <span class="field__suffix">years</span>
+          </span>
+        </label>
+        <div class="field field--computed">
+          <span class="field__label">Loan-to-value</span>
+          <span class="field__readout" data-readout="masterLtv">—</span>
+        </div>
+      </div>
+
+      <div class="master__col">
+        <p class="master__col-title">№ III · Repayment</p>
+        <fieldset class="seg seg--grid seg--compact" data-seg="repaymentType">
+          <legend class="sr-only">Repayment type</legend>
+          <label class="seg__opt"><input type="radio" name="masterType" value="repayment"     data-master="repaymentType" />Repayment</label>
+          <label class="seg__opt"><input type="radio" name="masterType" value="interest-only" data-master="repaymentType" />Int.-only</label>
+          <label class="seg__opt"><input type="radio" name="masterType" value="part-and-part" data-master="repaymentType" />Part&amp;part</label>
+          <label class="seg__opt"><input type="radio" name="masterType" value="offset"        data-master="repaymentType" />Offset</label>
+        </fieldset>
+        <div class="type-extras" data-show-when="part-and-part">
+          <label class="field">
+            <span class="field__label">Repayment share</span>
+            <span class="field__input field__input--suffix">
+              <input type="number" inputmode="decimal" step="5" min="0" max="100" data-master="partRepaymentPct" />
+              <span class="field__suffix">%</span>
+            </span>
+          </label>
+        </div>
+        <div class="type-extras" data-show-when="offset">
+          <label class="field">
+            <span class="field__label">Offset savings</span>
+            <span class="field__input field__input--currency">
+              <span class="field__prefix">£</span>
+              <input type="number" inputmode="decimal" step="1000" min="0" data-master="offsetSavings" />
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div class="master__col">
+        <p class="master__col-title">№ IV · Overpayments</p>
+        <fieldset class="seg seg--grid seg--compact" data-seg="overpaymentMode">
+          <legend class="sr-only">Overpayment mode</legend>
+          <label class="seg__opt"><input type="radio" name="masterOver" value="fixed"   data-master="overpaymentMode" />Fixed £</label>
+          <label class="seg__opt"><input type="radio" name="masterOver" value="percent" data-master="overpaymentMode" />Percent %</label>
+        </fieldset>
+
+        <div class="over-extras" data-show-when="fixed">
+          <label class="field">
+            <span class="field__label">Max each month</span>
+            <span class="field__input field__input--currency">
+              <span class="field__prefix">£</span>
+              <input type="number" inputmode="decimal" step="50" min="0" data-master="monthlyOverpayment" />
+            </span>
+          </label>
+        </div>
+
+        <div class="over-extras" data-show-when="percent">
+          <label class="field">
+            <span class="field__label">Above monthly cost</span>
+            <span class="field__input field__input--suffix">
+              <input type="number" inputmode="decimal" step="1" min="0" max="100" data-master="overpaymentPercent" />
+              <span class="field__suffix">%</span>
+            </span>
+          </label>
+        </div>
+
+        <label class="field">
+          <span class="field__label">Lump sum at start</span>
+          <span class="field__input field__input--currency">
+            <span class="field__prefix">£</span>
+            <input type="number" inputmode="decimal" step="500" min="0" data-master="lumpSumOverpayment" />
+          </span>
+        </label>
+      </div>
+
+      <div class="master__col">
+        <p class="master__col-title">№ V · Stamp Duty &amp; Fee</p>
+        <div class="checks checks--tight checks--column">
+          <label class="check"><input type="checkbox" data-master="firstTimeBuyer" /> <span>First-time buyer</span></label>
+          <label class="check"><input type="checkbox" data-master="additionalProperty" /> <span>Additional property</span></label>
+        </div>
+        <p class="field__label master__sub">Product fee</p>
+        <fieldset class="seg seg--stack seg--compact" data-seg="feeFinanced">
+          <legend class="sr-only">Fee handling</legend>
+          <label class="seg__opt"><input type="radio" name="masterFee" value="add" data-master="feeFinanced" />Add to loan</label>
+          <label class="seg__opt"><input type="radio" name="masterFee" value="pay" data-master="feeFinanced" />Pay upfront</label>
+        </fieldset>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===== REMORTGAGE master ===== -->
+  <section class="master master--remortgage" data-mode="remortgage" aria-labelledby="masterHeadingRemo">
+    <header class="master__head">
+      <div class="master__title-group">
+        <p class="kicker kicker--accent">Master scenario · remortgage</p>
+        <h2 class="master__title" id="masterHeadingRemo">Where you stand today</h2>
+        <p class="master__note">
+          Your current property value, what you still owe, and how long is left on the term.
+          Use the <em>↦ Remortgage</em> button on any purchase scenario to fast-forward to a
+          specific year's balance and pre-fill these fields automatically.
+        </p>
+      </div>
+      <div class="master__controls">
+        <span class="pill" data-scenario-count>— scenarios</span>
+        <span class="pill pill--accent" title="Bank of England Bank Rate">BoE · 3.75%</span>
+        <button type="button" class="btn btn--primary" id="addScenarioBtnRemo">
+          <span aria-hidden="true">+</span> Add scenario
+        </button>
+        <button type="button" class="btn btn--ghost" id="resetBtnRemo">Reset</button>
+      </div>
+    </header>
+
+    <!-- Source-link strip: visible when this remortgage was seeded from a purchase scenario -->
+    <div class="source-strip" hidden>
+      <div class="source-strip__main">
+        <p class="source-strip__kicker">Pre-filled from purchase scenario</p>
+        <p class="source-strip__name" data-readout="sourceName">—</p>
+        <p class="source-strip__hint">
+          Changing the year re-simulates the original scenario's amortisation
+          (overpayments included) and updates the balance + remaining term below.
+        </p>
+      </div>
+      <div class="source-strip__control">
+        <label class="field source-strip__field">
+          <span class="field__label">At end of year</span>
+          <span class="field__input field__input--suffix">
+            <input type="number" data-readout="sourceYear" min="1" step="1" />
+            <span class="field__suffix">of <span data-readout="sourceMaxYear">—</span></span>
+          </span>
+        </label>
+        <button type="button" class="source-strip__detach" data-action="detach-source" title="Detach — edit the remortgage master freely">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 5l14 14M19 5L5 19"/></svg>
+          Detach
+        </button>
+      </div>
+    </div>
+
+    <div class="master__body">
+
+      <div class="master__col">
+        <p class="master__col-title">№ I · The Property</p>
+        <label class="field">
+          <span class="field__label">Current value</span>
+          <span class="field__input field__input--currency">
+            <span class="field__prefix">£</span>
+            <input type="number" inputmode="decimal" step="1000" min="0" data-master="propertyValue" />
+          </span>
+        </label>
+        <label class="field">
+          <span class="field__label">Outstanding balance</span>
+          <span class="field__input field__input--currency">
+            <span class="field__prefix">£</span>
+            <input type="number" inputmode="decimal" step="1000" min="0" data-master="outstandingBalance" />
+          </span>
+        </label>
+      </div>
+
+      <div class="master__col">
+        <p class="master__col-title">№ II · Term</p>
+        <label class="field">
+          <span class="field__label">Years remaining</span>
+          <span class="field__input field__input--suffix">
+            <input type="number" inputmode="numeric" step="1" min="1" max="40" data-master="termYears" />
+            <span class="field__suffix">years</span>
+          </span>
+        </label>
+        <div class="field field--computed">
+          <span class="field__label">Loan-to-value</span>
+          <span class="field__readout" data-readout="masterLtv">—</span>
+        </div>
+      </div>
+
+      <div class="master__col">
+        <p class="master__col-title">№ III · Repayment</p>
+        <fieldset class="seg seg--grid seg--compact" data-seg="repaymentType">
+          <legend class="sr-only">Repayment type</legend>
+          <label class="seg__opt"><input type="radio" name="masterTypeRemo" value="repayment"     data-master="repaymentType" />Repayment</label>
+          <label class="seg__opt"><input type="radio" name="masterTypeRemo" value="interest-only" data-master="repaymentType" />Int.-only</label>
+          <label class="seg__opt"><input type="radio" name="masterTypeRemo" value="part-and-part" data-master="repaymentType" />Part&amp;part</label>
+          <label class="seg__opt"><input type="radio" name="masterTypeRemo" value="offset"        data-master="repaymentType" />Offset</label>
+        </fieldset>
+        <div class="type-extras" data-show-when="part-and-part">
+          <label class="field">
+            <span class="field__label">Repayment share</span>
+            <span class="field__input field__input--suffix">
+              <input type="number" inputmode="decimal" step="5" min="0" max="100" data-master="partRepaymentPct" />
+              <span class="field__suffix">%</span>
+            </span>
+          </label>
+        </div>
+        <div class="type-extras" data-show-when="offset">
+          <label class="field">
+            <span class="field__label">Offset savings</span>
+            <span class="field__input field__input--currency">
+              <span class="field__prefix">£</span>
+              <input type="number" inputmode="decimal" step="1000" min="0" data-master="offsetSavings" />
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div class="master__col">
+        <p class="master__col-title">№ IV · Overpayments</p>
+        <fieldset class="seg seg--grid seg--compact" data-seg="overpaymentMode">
+          <legend class="sr-only">Overpayment mode</legend>
+          <label class="seg__opt"><input type="radio" name="masterOverRemo" value="fixed"   data-master="overpaymentMode" />Fixed £</label>
+          <label class="seg__opt"><input type="radio" name="masterOverRemo" value="percent" data-master="overpaymentMode" />Percent %</label>
+        </fieldset>
+        <div class="over-extras" data-show-when="fixed">
+          <label class="field">
+            <span class="field__label">Max each month</span>
+            <span class="field__input field__input--currency">
+              <span class="field__prefix">£</span>
+              <input type="number" inputmode="decimal" step="50" min="0" data-master="monthlyOverpayment" />
+            </span>
+          </label>
+        </div>
+        <div class="over-extras" data-show-when="percent">
+          <label class="field">
+            <span class="field__label">Above monthly cost</span>
+            <span class="field__input field__input--suffix">
+              <input type="number" inputmode="decimal" step="1" min="0" max="100" data-master="overpaymentPercent" />
+              <span class="field__suffix">%</span>
+            </span>
+          </label>
+        </div>
+        <label class="field">
+          <span class="field__label">Lump sum at start</span>
+          <span class="field__input field__input--currency">
+            <span class="field__prefix">£</span>
+            <input type="number" inputmode="decimal" step="500" min="0" data-master="lumpSumOverpayment" />
+          </span>
+        </label>
+      </div>
+
+      <div class="master__col">
+        <p class="master__col-title">№ V · Fee Handling</p>
+        <p class="field__label master__sub">Product fee</p>
+        <fieldset class="seg seg--stack seg--compact" data-seg="feeFinanced">
+          <legend class="sr-only">Fee handling</legend>
+          <label class="seg__opt"><input type="radio" name="masterFeeRemo" value="add" data-master="feeFinanced" />Add to loan</label>
+          <label class="seg__opt"><input type="radio" name="masterFeeRemo" value="pay" data-master="feeFinanced" />Pay upfront</label>
+        </fieldset>
+        <p class="master__hint">
+          On a remortgage there's no stamp duty or new deposit — just the lender's
+          product fee. Adding it to the loan pushes your LTV up a touch.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <main class="scenarios" id="scenarioRail" aria-label="Mortgage scenarios"></main>
+
+  <section class="comparison" aria-labelledby="comparisonHeading">
+    <div class="comparison__head">
+      <p class="kicker">Folio II</p>
+      <h2 class="comparison__title" id="comparisonHeading">The Comparison Dashboard</h2>
+      <p class="comparison__lede">
+        Short term, long term, and every cell in between.
+        Best figures in oxblood; worst in muted ink.
+      </p>
+    </div>
+
+    <div class="dash">
+      <!-- Headline cards: at-a-glance metrics with sparkbars across scenarios -->
+      <div class="dash__cards" id="headlineCards"></div>
+
+      <!-- Stress test: bumps every scenario's revert rate -->
+      <div class="stress">
+        <div class="stress__copy">
+          <p class="kicker">A Stress Test</p>
+          <p class="stress__lede">
+            What if the Bank Rate climbs after your fix ends?
+            Add to every scenario's revert rate and watch the line bend.
+          </p>
+        </div>
+        <div class="stress__control">
+          <label class="stress__field">
+            <span class="stress__label">Rate shock</span>
+            <input type="range" id="rateShock" min="-2" max="4" step="0.25" value="0" />
+            <span class="stress__value" id="rateShockValue">+0.00 pp</span>
+          </label>
+          <button type="button" class="btn btn--ghost btn--small" id="resetShockBtn">Reset</button>
+        </div>
+      </div>
+
+      <!-- Three multi-line charts: monthly payment, balance, cumulative cost -->
+      <div class="charts">
+        <article class="chart">
+          <header class="chart__head">
+            <h3 class="chart__title">Monthly outgoings, year by year</h3>
+            <p class="chart__sub">The step shows the moment your fix expires. The taller the step, the bigger the shock.</p>
+          </header>
+          <div class="chart__body">
+            <svg class="chart__svg" id="chartMonthly" viewBox="0 0 800 280" aria-hidden="true"></svg>
+            <div class="chart__axis" id="chartMonthlyAxis"></div>
+          </div>
+        </article>
+
+        <article class="chart">
+          <header class="chart__head">
+            <h3 class="chart__title">Balance remaining</h3>
+            <p class="chart__sub">How quickly the debt shrinks. Flat lines are interest-only.</p>
+          </header>
+          <div class="chart__body">
+            <svg class="chart__svg" id="chartBalance" viewBox="0 0 800 280" aria-hidden="true"></svg>
+            <div class="chart__axis" id="chartBalanceAxis"></div>
+          </div>
+        </article>
+
+        <article class="chart chart--wide">
+          <header class="chart__head">
+            <h3 class="chart__title">Cumulative cost over time</h3>
+            <p class="chart__sub">Total paid out by year. The line that ends lowest wins — usually.</p>
+          </header>
+          <div class="chart__body">
+            <svg class="chart__svg" id="chartCumulative" viewBox="0 0 1200 320" aria-hidden="true"></svg>
+            <div class="chart__axis" id="chartCumulativeAxis"></div>
+          </div>
+        </article>
+      </div>
+
+      <!-- Scenario legend, also used as colour key -->
+      <div class="legend" id="chartLegend"></div>
+
+      <!-- The classical ledger table -->
+      <div class="comparison__scroll">
+        <table class="ledger-table" id="comparisonTable" aria-live="polite">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="glossary" aria-labelledby="glossaryHeading">
+    <div class="glossary__rule"></div>
+    <header class="glossary__head">
+      <p class="kicker">A Glossary</p>
+      <h2 class="glossary__title" id="glossaryHeading">Plain words for the figures above</h2>
+      <p class="glossary__lede">
+        Every term used on this page, defined in one sentence each.
+        Skim the column relevant to where you are stuck.
+      </p>
+    </header>
+
+    <div class="glossary__cols">
+      <div class="glossary__col">
+        <p class="glossary__kicker">The structure</p>
+        <dl class="glossary__list">
+          <dt>Loan-to-value (LTV)</dt>
+          <dd>Your loan as a percentage of the property's value. Lenders price in discrete tiers (60, 75, 80, 85, 90, 95%); crossing a tier changes your rate.</dd>
+
+          <dt>Initial period</dt>
+          <dd>The years your headline rate is locked, typically 2 or 5. When it expires you fall onto the lender's revert rate unless you remortgage.</dd>
+
+          <dt>Revert rate (SVR)</dt>
+          <dd>The Standard Variable Rate you pay after your fix ends. Usually 2–4 points above headline rates — by design, to nudge you to remortgage.</dd>
+
+          <dt>Tier breakpoint</dt>
+          <dd>The point where adding a little more deposit drops you into a better LTV tier and a materially lower rate.</dd>
+        </dl>
+      </div>
+
+      <div class="glossary__col">
+        <p class="glossary__kicker">The types</p>
+        <dl class="glossary__list">
+          <dt>Capital repayment</dt>
+          <dd>Every monthly payment covers interest plus a slice of principal. By the end of the term, the loan is gone.</dd>
+
+          <dt>Interest-only</dt>
+          <dd>Each month you pay only the interest; the principal remains until you repay it in a lump (usually by selling or remortgaging).</dd>
+
+          <dt>Offset</dt>
+          <dd>Your savings balance offsets the loan for interest calculations. You still owe the full loan, but you pay less interest each month.</dd>
+
+          <dt>Part &amp; part</dt>
+          <dd>A hybrid. A portion of the loan is capital repayment; the rest is interest-only. Useful when you only expect to repay part by term end.</dd>
+        </dl>
+      </div>
+
+      <div class="glossary__col">
+        <p class="glossary__kicker">The costs</p>
+        <dl class="glossary__list">
+          <dt>Stamp Duty (SDLT)</dt>
+          <dd>A purchase tax on residential property in England &amp; NI, banded by price. First-time buyer relief applies up to £500,000; additional-property buyers pay a 5% surcharge on every band.</dd>
+
+          <dt>Product fee</dt>
+          <dd>A one-off lender fee (often £999), the price of the rate you've been quoted. Pay it upfront or add it to the loan.</dd>
+
+          <dt>Cash at completion</dt>
+          <dd>All the money you need on day one: deposit + SDLT + any upfront fees. The bank doesn't lend this — it has to come from you.</dd>
+
+          <dt>BoE Bank Rate</dt>
+          <dd>The base rate set monthly by the Bank of England's Monetary Policy Committee. Trackers move with it directly; fixes are influenced indirectly via swap rates.</dd>
+        </dl>
+      </div>
+
+      <div class="glossary__col">
+        <p class="glossary__kicker">The strategy</p>
+        <dl class="glossary__list">
+          <dt>Overpayments (fixed)</dt>
+          <dd>A set £ amount paid above the required monthly cost. Reduces both total interest and term length. Most lenders allow up to 10% of the balance per year without penalty.</dd>
+
+          <dt>Overpayments (percent)</dt>
+          <dd>Paying X% on top of each month's required cost. Scales automatically as the payment changes — for example, when the fix ends and the payment jumps.</dd>
+
+          <dt>Rate shock</dt>
+          <dd>The stress-test slider in the dashboard. Adds (or subtracts) points to every scenario's revert rate, so you can see what a 2pp rise after your fix would cost you.</dd>
+
+          <dt>True cost of owning</dt>
+          <dd>Deposit + SDLT + upfront fees + every monthly payment + any residual still owed at term end. The full bill, not just the headline payment.</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer__rule"></div>
+    <div class="footer__cols">
+      <div>
+        <p class="kicker">Notes &amp; Provenance</p>
+        <p>
+          Lender rates are illustrative best-buy headlines for May 2026 at the
+          stated LTV tier, including 2- and 5-year fixes and selected trackers.
+          Override any cell with your own quote.
+        </p>
+      </div>
+      <div>
+        <p class="kicker">Stamp Duty</p>
+        <p>
+          SDLT bands shown apply to England &amp; Northern Ireland (2026).
+          First-time buyer relief applies up to £500,000.
+          Wales (LTT) and Scotland (LBTT) use different systems and are not modelled.
+        </p>
+      </div>
+      <div>
+        <p class="kicker">Not Advice</p>
+        <p>
+          This is a calculator, not regulated financial advice. Speak to an
+          independent broker before committing. Your home may be repossessed
+          if you do not keep up repayments on your mortgage.
+        </p>
+      </div>
+    </div>
+    <p class="footer__sig">— Mortgager · set in Fraunces · numerals in JetBrains Mono</p>
+  </footer>
+
+  <!-- Scenario template, cloned for each scenario -->
+  <template id="scenarioTemplate">
+    <article class="scenario" data-scenario>
+      <header class="scenario__head">
+        <div class="scenario__id">
+          <span class="scenario__letter" data-letter>A</span>
+          <input
+            class="scenario__name"
+            type="text"
+            data-field="name"
+            value="Scenario A"
+            aria-label="Scenario name"
+            spellcheck="false"
+          />
+        </div>
+        <div class="scenario__actions">
+          <button type="button" class="scenario__action scenario__action--remo" data-action="to-remortgage" aria-label="Send to remortgage page" title="↦ Use this as the starting point for a remortgage">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6">
+              <path d="M4 12h14M14 6l6 6-6 6"/>
+            </svg>
+          </button>
+          <button type="button" class="scenario__action" data-action="duplicate" aria-label="Duplicate scenario" title="Duplicate">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6">
+              <rect x="8" y="8" width="12" height="12" rx="1"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>
+            </svg>
+          </button>
+          <button type="button" class="scenario__action" data-action="remove" aria-label="Remove scenario" title="Remove">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6">
+              <path d="M5 5l14 14M19 5L5 19"/>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <section class="block">
+        <h3 class="block__title"><span class="block__num">I.</span> The Lender</h3>
+        <div class="grid grid--2">
+          <label class="field">
+            <span class="field__label">Lender</span>
+            <span class="field__input">
+              <select data-field="lenderId"></select>
+            </span>
+          </label>
+          <label class="field">
+            <span class="field__label">Product</span>
+            <span class="field__input">
+              <select data-field="productId"></select>
+            </span>
+          </label>
+          <label class="field">
+            <span class="field__label">Initial rate</span>
+            <span class="field__input field__input--suffix">
+              <input type="number" inputmode="decimal" step="0.01" min="0" data-field="rateInitial" />
+              <span class="field__suffix">% p.a.</span>
+            </span>
+          </label>
+          <label class="field">
+            <span class="field__label">Initial period</span>
+            <span class="field__input field__input--suffix">
+              <input type="number" inputmode="numeric" step="1" min="0" max="40" data-field="initialYears" />
+              <span class="field__suffix">years</span>
+            </span>
+          </label>
+          <label class="field">
+            <span class="field__label">Revert rate (SVR)</span>
+            <span class="field__input field__input--suffix">
+              <input type="number" inputmode="decimal" step="0.01" min="0" data-field="rateRevert" />
+              <span class="field__suffix">% p.a.</span>
+            </span>
+          </label>
+          <label class="field">
+            <span class="field__label">Product fee</span>
+            <span class="field__input field__input--currency">
+              <span class="field__prefix">£</span>
+              <input type="number" inputmode="decimal" step="50" min="0" data-field="fee" />
+            </span>
+          </label>
+        </div>
+        <div class="field--computed scenario__ltv">
+          <span class="field__label">Loan-to-value at this lender</span>
+          <span class="field__readout" data-readout="ltv">—</span>
+        </div>
+        <p class="hint" data-readout="ltvHint" hidden></p>
+      </section>
+
+      <section class="block block--results">
+        <h3 class="block__title"><span class="block__num">II.</span> The Verdict</h3>
+
+        <div class="verdict">
+          <div class="verdict__primary">
+            <span class="verdict__label">Monthly · initial period</span>
+            <span class="verdict__amount" data-readout="monthlyInitial">£—</span>
+          </div>
+          <div class="verdict__secondary">
+            <span class="verdict__label">Monthly · after revert</span>
+            <span class="verdict__amount verdict__amount--alt" data-readout="monthlyRevert">£—</span>
+          </div>
+        </div>
+
+        <dl class="figures">
+          <div><dt>Loan amount</dt><dd data-readout="loan">£—</dd></div>
+          <div><dt>SDLT</dt><dd data-readout="sdlt">£—</dd></div>
+          <div><dt>Cash needed at completion</dt><dd data-readout="upfrontCash">£—</dd></div>
+          <div><dt>Total interest over term</dt><dd data-readout="totalInterest">£—</dd></div>
+          <div><dt>Total mortgage payments</dt><dd data-readout="totalPaid">£—</dd></div>
+          <div><dt>Term actually served</dt><dd data-readout="termActual">— yrs</dd></div>
+          <div data-row="residual"><dt>Residual owed at term end</dt><dd data-readout="residual">£—</dd></div>
+          <div><dt>True cost of owning</dt><dd data-readout="trueCost" class="dd--strong">£—</dd></div>
+        </dl>
+      </section>
+    </article>
+  </template>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
