@@ -1,8 +1,6 @@
-# Edge server block — paste this into /root/dicegram/Caddyfile on the VPS
-# (alongside the houses.desastreger.cloud and pb.desastreger.cloud blocks),
-# then restart the edge Caddy:
-#
-#     docker restart dicegram-caddy
+# Edge server block — installed automatically by deploy.sh into
+# /opt/caddy-sites/mortgauger.caddy on the VPS, then the edge Caddy
+# (dicegram-caddy) is reloaded via `caddy reload`. No manual edits needed.
 #
 # The `mortgauger` upstream resolves over the shared `caddy_net` Docker
 # network, which the mortgauger container joins via docker-compose.yml.
