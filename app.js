@@ -1,4 +1,4 @@
-// Mortgager — the conductor.
+// Mortgauger — the conductor.
 // Owns app state, the Scenario component, and the comparison dashboard.
 
 import { LENDERS, BANK_OF_ENGLAND } from './data.js';

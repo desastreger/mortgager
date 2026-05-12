@@ -1,4 +1,4 @@
-# Mortgager
+# Mortgauger
 
 A static, no-build UK mortgage scenario calculator.
 
@@ -28,14 +28,14 @@ ES modules don't work over `file://` in browsers, so a server is required.
 First time on the box:
 
 ```sh
-git clone https://github.com/desastreger/mortgager.git ~/mortgager
-cd ~/mortgager
+git clone https://github.com/desastreger/mortgauger.git ~/mortgauger
+cd ~/mortgauger
 chmod +x deploy.sh
-MORTGAGER_DOMAIN=mortgager.yourdomain.com ./deploy.sh --caddy
+MORTGAUGER_DOMAIN=mortgauger.yourdomain.com ./deploy.sh --caddy
 ```
 
-`deploy.sh --caddy` renders `caddy/mortgager.caddy` with your repo path and
-domain, drops it into `/etc/caddy/Caddyfile.d/mortgager.caddy`, validates, and
+`deploy.sh --caddy` renders `caddy/mortgauger.caddy` with your repo path and
+domain, drops it into `/etc/caddy/Caddyfile.d/mortgauger.caddy`, validates, and
 reloads Caddy. The main `/etc/caddy/Caddyfile` must import the snippet
 directory once:
 
@@ -46,7 +46,7 @@ import /etc/caddy/Caddyfile.d/*.caddy
 Subsequent updates:
 
 ```sh
-cd ~/mortgager && git pull && ./deploy.sh --caddy
+cd ~/mortgauger && git pull && ./deploy.sh --caddy
 ```
 
 Or skip `--caddy` if you only changed app code (Caddy serves directly from the

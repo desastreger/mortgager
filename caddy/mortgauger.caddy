@@ -1,6 +1,6 @@
-# Mortgager — Caddy server block.
+# Mortgauger — Caddy server block.
 # This is a template. `deploy.sh --caddy` renders it with your repo path
-# and domain, then drops it into /etc/caddy/Caddyfile.d/mortgager.caddy.
+# and domain, then drops it into /etc/caddy/Caddyfile.d/mortgauger.caddy.
 #
 # For first-time setup, ensure your main /etc/caddy/Caddyfile imports the
 # snippet directory:
@@ -26,7 +26,7 @@
     header @modules Cache-Control "no-cache"
 
     log {
-        output file /var/log/caddy/mortgager.log {
+        output file /var/log/caddy/mortgauger.log {
             roll_size 10mb
             roll_keep 5
         }
