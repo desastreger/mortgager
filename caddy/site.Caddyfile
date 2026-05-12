@@ -1,0 +1,26 @@
+# Inner Caddyfile — runs inside the mortgauger container.
+# Serves the repo directory mounted at /srv on port 80 (internal only).
+# The edge dicegram-caddy reverse-proxies to this container by name.
+
+:80 {
+    root * /srv
+    encode zstd gzip
+    file_server
+
+    # Never expose dotfiles or git internals via HTTP.
+    # Matches /.git, /.gitignore, /.gitattributes, plus any nested dot-path.
+    @hidden path /.* */.*
+    respond @hidden 404
+
+    # Long-cache static assets; HTML and JS modules stay no-cache so that
+    # a `git pull` followed by `docker compose restart mortgauger` shows up
+    # without users needing to hard-refresh.
+    @assets path *.css *.woff2 *.png *.svg *.jpg *.jpeg *.ico *.gif
+    header @assets Cache-Control "public, max-age=31536000, immutable"
+
+    @html path *.html /
+    header @html Cache-Control "no-cache"
+
+    @modules path *.js
+    header @modules Cache-Control "no-cache"
+}

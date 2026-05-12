@@ -1,103 +1,91 @@
 #!/usr/bin/env bash
 # Mortgauger — VPS deploy helper.
 #
-# Usage:
-#   ./deploy.sh           Pull + report. Use after `git pull` to sanity-check.
-#   ./deploy.sh --caddy   Render the Caddy server block, install it, reload.
-#   ./deploy.sh --help    Show this help.
+# Runs the mortgauger container (caddy:2-alpine serving this directory) on
+# the existing `caddy_net` Docker network. The edge Caddy (dicegram-caddy)
+# reverse-proxies https://mortgauger.desastreger.cloud → mortgauger:80.
 #
-# Domain: set with the MORTGAUGER_DOMAIN env var, e.g.:
-#   MORTGAUGER_DOMAIN=mortgauger.example.com ./deploy.sh --caddy
+# First-time setup on the VPS:
+#   1. git clone https://github.com/desastreger/mortgauger.git ~/mortgauger
+#   2. cd ~/mortgauger && ./deploy.sh --print-block
+#      (copy the printed server block into /root/dicegram/Caddyfile,
+#       alongside the other site blocks)
+#   3. docker restart dicegram-caddy
+#   4. ./deploy.sh
 #
-# Or edit DEFAULT_DOMAIN below once and forget about it.
+# Subsequent updates:
+#   cd ~/mortgauger && git pull && ./deploy.sh
+#
+# (No Caddy edit needed after the first time. `docker compose up -d` is a
+#  no-op if nothing changed; volume mounts pick up new files automatically.)
 
 set -euo pipefail
+cd "$(dirname "$0")"
 
-DEFAULT_DOMAIN="mortgauger.example.com"
-DOMAIN="${MORTGAUGER_DOMAIN:-$DEFAULT_DOMAIN}"
-
-REPO_DIR="$(cd "$(dirname "$0")" && pwd -P)"
-CADDY_SNIPPET_DIR="/etc/caddy/Caddyfile.d"
-CADDY_SNIPPET="$CADDY_SNIPPET_DIR/mortgauger.caddy"
-CADDY_TEMPLATE="$REPO_DIR/caddy/mortgauger.caddy"
-
-setup_caddy=false
+print_block=false
 for arg in "$@"; do
   case "$arg" in
-    --caddy) setup_caddy=true ;;
+    --print-block|--caddy)
+      print_block=true ;;
     --help|-h)
-      sed -n '2,15p' "$0" | sed 's/^# //; s/^#//'
+      sed -n '/^# Mortgauger/,/^$/p' "$0" | sed 's/^# \{0,1\}//'
       exit 0 ;;
     *) echo "Unknown arg: $arg" >&2; exit 1 ;;
   esac
 done
 
-# ---- Sanity ---------------------------------------------------------------
+log()  { printf '\033[1;34m→\033[0m %s\n' "$*"; }
+ok()   { printf '\033[1;32m✓\033[0m %s\n' "$*"; }
+fail() { printf '\033[1;31m✗\033[0m %s\n' "$*" >&2; exit 1; }
 
-required=(index.html app.js calc.js data.js styles.css)
-for f in "${required[@]}"; do
-  [[ -f "$REPO_DIR/$f" ]] || { echo "missing: $REPO_DIR/$f" >&2; exit 1; }
+# ---- Sanity ----
+command -v docker >/dev/null 2>&1 || fail "docker is not installed"
+docker compose version >/dev/null 2>&1 || fail "docker compose plugin missing"
+
+for f in index.html app.js calc.js data.js styles.css \
+         caddy/site.Caddyfile caddy/mortgauger.caddy docker-compose.yml; do
+  [[ -f "$f" ]] || fail "missing file in repo: $f"
 done
 
-if [[ -d "$REPO_DIR/.git" ]]; then
-  branch=$(git -C "$REPO_DIR" rev-parse --abbrev-ref HEAD)
-  short=$(git -C "$REPO_DIR" rev-parse --short HEAD)
-  echo "Mortgauger · $branch @ $short"
-else
-  echo "Mortgauger · (not a git repo)"
-fi
-echo "  path:   $REPO_DIR"
-echo "  domain: $DOMAIN"
-
-# ---- Caddy ---------------------------------------------------------------
-
-if [[ "$setup_caddy" != "true" ]]; then
-  echo "Done. (no --caddy flag, so Caddy was not touched.)"
-  exit 0
+if ! docker network ls --format '{{.Name}}' | grep -qx caddy_net; then
+  fail "Docker network 'caddy_net' not found.
+   The dicegram-caddy stack must be running first
+   (cd ~/dicegram && ./deploy.sh --caddy)."
 fi
 
-if [[ ! -f "$CADDY_TEMPLATE" ]]; then
-  echo "missing: $CADDY_TEMPLATE" >&2; exit 1
+# ---- Optional: print the edge server block ----
+if [[ "$print_block" == "true" ]]; then
+  echo
+  echo "──────────────────────────────────────────────────────────────────"
+  echo "Paste the following into /root/dicegram/Caddyfile,"
+  echo "alongside houses.desastreger.cloud and pb.desastreger.cloud:"
+  echo "──────────────────────────────────────────────────────────────────"
+  # Skip the leading comment block; keep just the actual Caddy directives.
+  awk 'BEGIN{p=0} /^[^#[:space:]]/{p=1} p' caddy/mortgauger.caddy
+  echo "──────────────────────────────────────────────────────────────────"
+  echo "Then run:  docker restart dicegram-caddy"
+  echo
 fi
 
-# Render the template with envsubst-equivalent shell expansion.
-rendered=$(DOMAIN="$DOMAIN" REPO_DIR="$REPO_DIR" \
-  awk -v d="$DOMAIN" -v r="$REPO_DIR" \
-    '{ gsub(/\{\$DOMAIN\}/, d); gsub(/\{\$REPO_DIR\}/, r); print }' \
-    "$CADDY_TEMPLATE")
+# ---- Bring up the container ----
+log "docker compose up -d"
+docker compose up -d
 
-# Ensure the snippet directory exists.
-if [[ ! -d "$CADDY_SNIPPET_DIR" ]]; then
-  echo "  creating $CADDY_SNIPPET_DIR (needs sudo)"
-  sudo mkdir -p "$CADDY_SNIPPET_DIR"
+# Wait briefly for the container to be running, then sanity-check.
+for _ in $(seq 1 10); do
+  state=$(docker inspect -f '{{.State.Status}}' mortgauger 2>/dev/null || echo missing)
+  [[ "$state" == "running" ]] && break
+  sleep 1
+done
+
+if [[ "$state" != "running" ]]; then
+  docker compose logs --tail=30 mortgauger >&2
+  fail "mortgauger did not reach 'running' state"
 fi
 
-echo "  writing $CADDY_SNIPPET"
-echo "$rendered" | sudo tee "$CADDY_SNIPPET" > /dev/null
-
-# Verify the main Caddyfile imports the snippet directory.
-main_caddyfile="/etc/caddy/Caddyfile"
-if [[ -f "$main_caddyfile" ]] && ! grep -qE "^\s*import\s+.*Caddyfile\.d" "$main_caddyfile"; then
-  cat >&2 <<EOF
-
-  ⚠  Heads up: /etc/caddy/Caddyfile does not appear to \`import\` the
-     snippets directory. Add this line to it (once):
-
-         import /etc/caddy/Caddyfile.d/*.caddy
-
-     Then re-run ./deploy.sh --caddy.
-
-EOF
-fi
-
-# Validate then reload.
-if sudo caddy validate --config "$main_caddyfile" --adapter caddyfile > /dev/null 2>&1; then
-  sudo systemctl reload caddy
-  echo "  caddy reloaded"
-else
-  echo "  caddy validate failed — config NOT reloaded. Full output:" >&2
-  sudo caddy validate --config "$main_caddyfile" --adapter caddyfile >&2 || true
-  exit 1
-fi
-
-echo "Done. Open: https://$DOMAIN"
+ok "mortgauger is running"
+echo "  network: caddy_net"
+echo "  open:    https://mortgauger.desastreger.cloud"
+echo
+echo "(If the URL doesn't resolve yet, you still need to paste the Caddy"
+echo " block into /root/dicegram/Caddyfile and restart dicegram-caddy.)"

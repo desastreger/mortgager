@@ -23,34 +23,47 @@ Or any static-file server. Open <http://localhost:8000>.
 
 ES modules don't work over `file://` in browsers, so a server is required.
 
-## Deploying to a VPS (Caddy)
+## Deploying to a VPS (alongside dicegram-caddy)
 
-First time on the box:
+Mortgauger runs as a small `caddy:2-alpine` container that joins the existing
+`caddy_net` Docker network. The edge Caddy (the one already serving
+`dicegram`, `houses`, `pb`, etc.) reverse-proxies `mortgauger.<your-domain>`
+to it. No new ports opened, no port conflicts.
+
+### First-time setup
 
 ```sh
 git clone https://github.com/desastreger/mortgauger.git ~/mortgauger
 cd ~/mortgauger
-chmod +x deploy.sh
-MORTGAUGER_DOMAIN=mortgauger.yourdomain.com ./deploy.sh --caddy
+./deploy.sh --print-block
 ```
 
-`deploy.sh --caddy` renders `caddy/mortgauger.caddy` with your repo path and
-domain, drops it into `/etc/caddy/Caddyfile.d/mortgauger.caddy`, validates, and
-reloads Caddy. The main `/etc/caddy/Caddyfile` must import the snippet
-directory once:
-
-```caddy
-import /etc/caddy/Caddyfile.d/*.caddy
-```
-
-Subsequent updates:
+That prints the server block to copy into `/root/dicegram/Caddyfile`
+(alongside `houses.desastreger.cloud { … }` and `pb.desastreger.cloud { … }`).
+Save the file, then:
 
 ```sh
-cd ~/mortgauger && git pull && ./deploy.sh --caddy
+docker restart dicegram-caddy   # picks up the new block + fetches a cert
+./deploy.sh                     # brings up the mortgauger container
 ```
 
-Or skip `--caddy` if you only changed app code (Caddy serves directly from the
-working tree, no rebuild needed — `git pull` is sufficient).
+### Subsequent updates
+
+```sh
+cd ~/mortgauger && git pull && ./deploy.sh
+```
+
+The site files are bind-mounted into the container (`/srv` read-only), so
+`git pull` alone is usually enough — `./deploy.sh` just confirms the
+container is still healthy. Caddy edits aren't needed after the first time.
+
+### Files
+
+- `docker-compose.yml` — mortgauger service definition (joins `caddy_net`).
+- `caddy/site.Caddyfile` — runs *inside* the mortgauger container: `file_server`,
+  cache headers, dotfile blocking.
+- `caddy/mortgauger.caddy` — server block to paste into the edge Caddyfile.
+- `deploy.sh` — sanity checks + `docker compose up -d`.
 
 ## Project layout
 

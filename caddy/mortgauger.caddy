@@ -1,35 +1,26 @@
-# Mortgauger — Caddy server block.
-# This is a template. `deploy.sh --caddy` renders it with your repo path
-# and domain, then drops it into /etc/caddy/Caddyfile.d/mortgauger.caddy.
+# Edge server block — paste this into /root/dicegram/Caddyfile on the VPS
+# (alongside the houses.desastreger.cloud and pb.desastreger.cloud blocks),
+# then restart the edge Caddy:
 #
-# For first-time setup, ensure your main /etc/caddy/Caddyfile imports the
-# snippet directory:
+#     docker restart dicegram-caddy
 #
-#     import /etc/caddy/Caddyfile.d/*.caddy
-#
-# (sudo nano /etc/caddy/Caddyfile, then add that line. Mirror your dicegram setup.)
+# The `mortgauger` upstream resolves over the shared `caddy_net` Docker
+# network, which the mortgauger container joins via docker-compose.yml.
 
-{$DOMAIN} {
-    root * {$REPO_DIR}
-    encode gzip zstd
-    file_server
+mortgauger.desastreger.cloud {
+    encode zstd gzip
+    reverse_proxy mortgauger:80
 
-    # Long-cache the static assets, but make index.html and JS modules
-    # short-lived so updates show up after `git pull` without a hard refresh.
-    @cacheable path *.css *.woff2 *.png *.svg *.jpg *.ico
-    header @cacheable Cache-Control "public, max-age=31536000, immutable"
-
-    @html path *.html
-    header @html Cache-Control "no-cache"
-
-    @modules path *.js
-    header @modules Cache-Control "no-cache"
-
-    log {
-        output file /var/log/caddy/mortgauger.log {
-            roll_size 10mb
-            roll_keep 5
-        }
-        format console
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Cross-Origin-Opener-Policy "same-origin"
+        # The site pulls Google Fonts CSS + woff2; all scripts are local
+        # ES modules. No inline scripts, no remote JS, no XHR/fetch beyond
+        # Google Fonts CSS. Broaden this if you ever add analytics, etc.
+        Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self'; connect-src 'self'; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
+        -Server
     }
 }

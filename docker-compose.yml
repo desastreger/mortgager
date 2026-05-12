@@ -1,0 +1,34 @@
+services:
+  mortgauger:
+    image: caddy:2-alpine
+    container_name: mortgauger
+    restart: unless-stopped
+
+    # Serve the repo as a static site. The repo dir is mounted read-only;
+    # an inner Caddyfile (caddy/site.Caddyfile) wires up file-server, cache
+    # headers, and blocks dotfiles (.git, .gitattributes, etc).
+    volumes:
+      - .:/srv:ro
+      - ./caddy/site.Caddyfile:/etc/caddy/Caddyfile:ro
+      - mortgauger_caddy_data:/data
+      - mortgauger_caddy_config:/config
+
+    # Join the same network the edge dicegram-caddy lives on, so a
+    # `reverse_proxy mortgauger:80` block in the edge Caddyfile resolves.
+    networks:
+      - caddy_net
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# caddy_net is owned by the dicegram-caddy stack. We just join it.
+networks:
+  caddy_net:
+    external: true
+
+volumes:
+  mortgauger_caddy_data:
+  mortgauger_caddy_config:
